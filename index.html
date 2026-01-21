@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wizarding World Personality Quiz</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header role="banner">
+        <h1>Wizarding World Personality Quiz</h1>
+        <button id="music-toggle" aria-label="Play background music">🎵 Play Music</button>
+    </header>
+
+    <main role="main">
+        <section id="quiz-container" aria-live="polite">
+            <!-- Questions will be injected here -->
+            <p>Loading the Sorting Hat's questions...</p>
+        </section>
+
+        <section id="results-container" class="hidden" tabindex="-1">
+            <h2>Your Wizarding World Identity</h2>
+            <div id="result-content">
+                <!-- Results will be injected here -->
+            </div>
+            <button id="restart-btn" onclick="location.reload()">Take Quiz Again</button>
+        </section>
+    </main>
+
+    <footer role="contentinfo">
+        <p>&copy; 2024 Wizarding World Quiz. Disclaimer: This is a fan-made project.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
