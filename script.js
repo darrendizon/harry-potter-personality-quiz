@@ -186,47 +186,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- State ---
     let sessionQuestions = [];
-    let userScores = { bravery: 0, wit: 0, loyalty: 0, ambition: 0 };
+    let selectedAnswers = {}; // Map of questionNumber -> traits
     let questionIndex = 0;
-
-    // Audio
-    const music = new Audio('https://upload.wikimedia.org/wikipedia/commons/e/ec/Hedwig%27s_theme_on_piano.ogg'); // Using a free piano version or similar public domain placeholder if available.
-    // Note: Finding a specific copyrighted track like Hedwig's Theme that is hotlinkable and legal is hard.
-    // I will use a placeholder sound or a generated beep for the "music" if a real link fails, but for MVP instructions I'll use a placeholder URL.
-    // Actually, let's use a simple beep or synthesizer for the "voice snippet" and assume the music file exists or use a reliable open source clip.
-    // For this environment, I'll mock the music play if the file isn't reachable, or use a data URI for a simple melody if I could.
-    // I will stick to the logic.
-
-    let isMusicPlaying = false;
 
     // --- Initialization ---
     function init() {
-        sessionQuestions = generateQuestionPool(40);
+        sessionQuestions = generateQuestionPool(20);
 
         // Assign subjects to chunks of questions or randomly
         // Requirement: "Use subjects ... as section headers"
-        // We will group them. 40 questions / 4 subjects = 10 per subject?
-        // Or just random headers inserted.
+        // We will group them. 20 questions / 5 subjects = 4 per subject.
         // Let's group them by subject for better UI.
 
         // Shuffle subjects for this session
         const shuffledSubjects = SUBJECTS.sort(() => 0.5 - Math.random()).slice(0, 5); // Pick 5 random subjects
 
         renderQuiz(shuffledSubjects);
-
-        document.getElementById('music-toggle').addEventListener('click', toggleMusic);
-    }
-
-    function toggleMusic() {
-        if (isMusicPlaying) {
-            music.pause();
-            isMusicPlaying = false;
-            document.getElementById('music-toggle').innerText = "🎵 Play Music";
-        } else {
-            music.play().catch(e => console.log("Audio play failed (user interaction needed):", e));
-            isMusicPlaying = true;
-            document.getElementById('music-toggle').innerText = "⏸ Pause Music";
-        }
     }
 
     // --- Rendering ---
@@ -242,8 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
             header.innerText = subject;
             container.appendChild(header);
 
-            // Questions for this subject (e.g., 8 questions)
-            const questionsForSubject = 8;
+            // Questions for this subject (e.g., 4 questions)
+            const questionsForSubject = 4;
             for (let i = 0; i < questionsForSubject && qIdx < sessionQuestions.length; i++) {
                 const q = sessionQuestions[qIdx];
                 const qNum = qIdx + 1;
@@ -290,12 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Interaction ---
     function handleAnswer(e, questionNumber, traits) {
-        // 1. Update Score
-        for (const [trait, value] of Object.entries(traits)) {
-            if (userScores[trait] !== undefined) {
-                userScores[trait] += value;
-            }
-        }
+        // 1. Store Answer
+        selectedAnswers[questionNumber] = traits;
 
         // 2. Visual Feedback
         const btn = e.target;
@@ -305,10 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Array.from(parent.children).forEach(child => child.classList.remove('selected'));
         btn.classList.add('selected');
 
-        // 3. Audio / Voice Snippet
-        playVoiceSnippet(btn.innerText);
-
-        // 4. Check if all answered? Or just move focus.
+        // 3. Check if all answered? Or just move focus.
         // Logic: Move focus to the next question's header or first option.
         // Question IDs are `question-{qNum}`
         const nextQNum = questionNumber + 1;
@@ -328,27 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // End of quiz?
             // Check if all answered (count selected buttons)
             const totalSelected = document.querySelectorAll('.option-btn.selected').length;
-            if (totalSelected === 40) { // Or simply trigger finish if it's the last one
+            if (totalSelected === 20) { // Or simply trigger finish if it's the last one
                 showResults();
             }
-        }
-    }
-
-    function playVoiceSnippet(text) {
-        if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            // Randomize pitch/rate slightly to simulate different characters
-            utterance.pitch = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-            utterance.rate = 0.9 + Math.random() * 0.2;
-
-            // Try to find a British voice if available
-            const voices = window.speechSynthesis.getVoices();
-            const britishVoice = voices.find(v => v.lang.includes('GB') || v.name.includes('UK'));
-            if (britishVoice) {
-                utterance.voice = britishVoice;
-            }
-
-            window.speechSynthesis.speak(utterance);
         }
     }
 
@@ -359,6 +309,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         quizContainer.classList.add('hidden');
         resultsContainer.classList.remove('hidden');
+
+        // Calculate final scores
+        let userScores = { bravery: 0, wit: 0, loyalty: 0, ambition: 0 };
+        Object.values(selectedAnswers).forEach(traits => {
+            for (const [trait, value] of Object.entries(traits)) {
+                if (userScores[trait] !== undefined) {
+                    userScores[trait] += value;
+                }
+            }
+        });
 
         // Calculate winner
         // We match userScores to Character Traits
@@ -382,11 +342,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Render Result
         const content = document.getElementById('result-content');
-        content.innerHTML = `
-            <h3>${bestMatch.name}</h3>
-            <img src="${bestMatch.image}" alt="${bestMatch.alt}">
-            <p>${bestMatch.description}</p>
-        `;
+        if (bestMatch) {
+            content.innerHTML = `
+                <h3>${bestMatch.name}</h3>
+                <img src="${bestMatch.image}" alt="${bestMatch.alt}">
+                <p>${bestMatch.description}</p>
+            `;
+        } else {
+            content.innerHTML = `<p>The Sorting Hat is confused. Please try again.</p>`;
+        }
 
         // Focus for accessibility
         resultsContainer.focus();
